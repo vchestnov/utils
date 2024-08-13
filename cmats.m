@@ -10,7 +10,12 @@ Options @ stds = {
     "MonomialOrder" -> DegreeLexicographic,
     Nothing
 };
-(* Adapted `CanonicalAndDualBases` from `MultivariateResidue.m` 1701.01040 *)
+(*
+ * Adapted `CanonicalAndDualBases` function from the `MultivariateResidue.m` package
+ * released under GPL-3.0 license
+ * https://bitbucket.org/kjlarsen/multivariateresidues/
+ * https://arxiv.org/abs/1701.01040
+ *)
 stds[gb_List, vars_List, opts:OptionsPattern[]] := stds[gb, vars, opts] = Module[{leadingexps, maxexp, basis},
     leadingexps = MonomialList[gb, vars, OptionValue["MonomialOrder"]][[All, 1]] // Map[Exponent[#, vars]&];
     maxexp = leadingexps // Flatten // Max;
