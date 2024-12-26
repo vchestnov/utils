@@ -34,7 +34,8 @@ msS::usage = "msS :: {Matrix} -> String"
 msS1::usage = "msS1 :: {{Matrix}} -> String"
 eForm::usage = "..."
 
-subjs::usage = "Substitute `vars` using the `j`-notation."
+submons::usage = "Substitute monomials in `vars` with symbols `head` with exponents in the arguments."
+subjs::usage = "Substitute `vars` using the `j`-notation. Backward compatibility version."
 sym2ind::usage = "Convert a symbol to an indexed object."
 ind2sym::usage = "Convert an indexed object to a symbol."
 mseries1::usage = "Series expansion of tensors."
@@ -211,15 +212,16 @@ msS1 = RightComposition[
 ];
 
 (* ::Subsubsection::Closed:: *)
-(*subjs*)
+(*submons and subjs*)
 
-subjs[vars_List] := RightComposition[
+submons[vars_List, head_:$j] := RightComposition[
     Collect[#, vars, $coeff]&,
     Expand,
-    ReplaceAll[$coeff[h_] mon_. :> Times[h, mon // Exponent[#, vars]& // Apply[$j]]],
+    ReplaceAll[$coeff[h_] mon_. :> Times[h, mon // Exponent[#, vars]& // Apply[head]]],
     Identity
 ];
-subjs[var_] := subjs[{var}];
+submons[var_, head_:$j] := submons[{var}, head];
+subjs[vars_] := submons[vars, $j];
 
 (* ::Subsubsection::Closed:: *)
 (*sym2ind, ind2sym*)
