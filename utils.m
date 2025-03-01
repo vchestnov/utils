@@ -57,6 +57,8 @@ EnsureNoFile::usage = "..."
 
 colorANSICode::usage = "..."
 resetANSICode::usage = "..."
+abbr::usage = "..."
+Restore::usage = "..."
 
 Begin["`Private`"]
 
@@ -167,8 +169,10 @@ eForm = RightComposition[
 ];
 
 deleteZeroRows = Apply[List] /* DeleteCases[x_ /; SameQ[x["Density"], 0.]] /* SparseArray;
-rowReduce = RowReduce /* SparseArray /* deleteZeroRows;
-getNullSpace = NullSpace /* SparseArray;
+rowReduce[{}] := {};
+rowReduce[x_] := x // RowReduce // SparseArray // deleteZeroRows;
+getNullSpace[{}] := {};
+getNullSpace[x_] := x // NullSpace // If[SameQ[#, {}], {}, # // SparseArray]&;
 
 
 ClearAll[mS, msS, msS1];
@@ -389,6 +393,18 @@ getDens1[x_List] := RightComposition[
     ]],
     Union,
     Identity
+];
+
+(* ::Subsection::Closed:: *)
+(*addValidation*)
+
+SetAttributes[addValidation, HoldAll];
+addValidation[symbol_Symbol] := CompoundExpression[
+	symbol::badargs = "`1` wrong arguments `2`",
+	symbol[xs___] := Module[{},
+		Message[symbol::badargs, SymbolName[symbol], {xs}];
+		Throw[$Failed]
+	]
 ];
 
 (* ::Section:: *)
