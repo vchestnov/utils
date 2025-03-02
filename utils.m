@@ -60,6 +60,8 @@ resetANSICode::usage = "..."
 abbr::usage = "..."
 Restore::usage = "..."
 
+addValidation::usage = "..."
+
 Begin["`Private`"]
 
 (* From `AMFlow.m` *)
