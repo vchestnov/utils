@@ -98,7 +98,14 @@ chopseries[var_] := {
 
 logexpand = {Log[x_] :> Plus @@ (#2 Log[#1] & @@@ FactorList[x])};
 
-filter[pattern_] := Union @ Flatten @ Cases[#, pattern, -1]&;
+(* filter[pattern_] := Union @ Flatten @ Cases[#, pattern, -1]&; *)
+filter[pattern_] := RightComposition[
+    List,
+    Cases[#, pattern, -1]&,
+    Flatten,
+    Union,
+    Identity
+];
 
 (* ::Section:: *)
 (* My stuff *)
