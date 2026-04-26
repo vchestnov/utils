@@ -149,8 +149,8 @@ Add[xs__] = Plus[xs, #]&;
 Map2[f_] = Map[f, #, {2}]&;
 Map3[f_] = Map[f, #, {3}]&;
 Map4[f_] = Map[f, #, {4}]&;
-Apply1[f_] = Apply[f, #, {1}];
-Apply2[f_] = Apply[f, #, {2}];
+Apply1[f_] = Apply[f, #, {1}]&;
+Apply2[f_] = Apply[f, #, {2}]&;
 
 
 PlusToList[expr_Plus] := expr // Apply[List];
