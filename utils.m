@@ -4,41 +4,41 @@ BeginPackage["utils`"]
 
 filter::usage = "The filter function."
 
-save::usage = "Memoize arguments for future inspection."
-dvals::usage = "Inspect `DownValues`."
-Hide::usage = "Hide arguments as a \"...\" string."
-Unhide::usage = "Unhide hidden arguments."
-zipWith::usage = "zipWith :: {a -> b} -> {a} -> {b}"
-zipList::usage = "zipList :: {a -> b} -> {a} -> {b}"
-Lengths::usage = "..."
-Firsts::usage = "..."
-Lasts::usage = "..."
-Multiply::usage = "..."
-Add::usage = "..."
-Map2::usage = "..."
-Map3::usage = "..."
-Map4::usage = "..."
-Apply1::usage = "..."
-Apply2::usage = "..."
+save::usage = "save[args...] memoizes the call to `Nothing`, so the saved argument tuples can be inspected later through `DownValues[save]`."
+dvals::usage = "dvals[head] returns a simplified view of `DownValues[head]`. dvals[n][head] uses `n` wrapper levels when extracting the left- and right-hand sides."
+Hide::usage = "Hide[expr] wraps `expr` so it prints as \"...\". Hidden lists and `SparseArray` objects print as \"...\" followed by their dimensions."
+Unhide::usage = "Unhide replaces `Hide` with `Identity` inside an expression, revealing hidden arguments again."
+zipWith::usage = "zipWith[fs, xs] pairwise composes equally long lists `fs` and `xs` with `MapThread[Compose, ...]`."
+zipList::usage = "zipList[fs, xs] returns the flattened outer product of pairwise compositions between `fs` and `xs`. zipList[fs] is the corresponding operator form."
+Lengths::usage = "Lengths[list] maps `Length` over the first level of `list`."
+Firsts::usage = "Firsts[list] maps `First` over the first level of `list`."
+Lasts::usage = "Lasts[list] maps `Last` over the first level of `list`."
+Multiply::usage = "Multiply[x1, x2, ...][y] returns `x1 x2 ... y`."
+Add::usage = "Add[x1, x2, ...][y] returns `x1 + x2 + ... + y`."
+Map2::usage = "Map2[f][expr] applies `Map[f, expr, {2}]`."
+Map3::usage = "Map3[f][expr] applies `Map[f, expr, {3}]`."
+Map4::usage = "Map4[f][expr] applies `Map[f, expr, {4}]`."
+Apply1::usage = "Apply1[f][expr] applies `Apply[f, expr, {1}]`."
+Apply2::usage = "Apply2[f][expr] applies `Apply[f, expr, {2}]`."
 
-PlusToList::usage = "..."
-PowerToList::usage = "..."
-TimesToList::usage = "..."
+PlusToList::usage = "PlusToList[expr] turns a sum into a list of its terms and wraps any non-sum as a singleton list."
+PowerToList::usage = "PowerToList[expr] expands an integer power into a list of repeated factors; any other expression is wrapped as a singleton list."
+TimesToList::usage = "TimesToList[expr] turns a product into a flat list of factors, expanding integer powers via `PowerToList`."
 
-deleteZeroRows::usage = "..."
-rowReduce::usage = "..."
-getNullSpace::usage = "..."
-slicer::usage = "Slice a list into sublists of length up to `n`."
-mS::usage = "mS :: Matrix -> String"
-msS::usage = "msS :: {Matrix} -> String"
-msS1::usage = "msS1 :: {{Matrix}} -> String"
-eForm::usage = "..."
+deleteZeroRows::usage = "deleteZeroRows[m] removes zero-density rows from a sparse matrix and returns a `SparseArray`."
+rowReduce::usage = "rowReduce[m] row-reduces `m`, converts the result to `SparseArray`, and drops zero rows. rowReduce[{}] returns `{}`."
+getNullSpace::usage = "getNullSpace[m] returns `NullSpace[m]`, converting a nonempty basis to `SparseArray`. getNullSpace[{}] returns `{}`."
+slicer::usage = "slicer[n][list] slices `list` into consecutive chunks of length at most `n`. slicer[list, n] is equivalent. slicer[n1, n2][m] partitions a matrix into ragged `n1` by `n2` blocks."
+mS::usage = "mS[m] renders a matrix as an ASCII string, showing `1` entries explicitly, `0` entries as spaces, and other entries as `*`."
+msS::usage = "msS[{m1, m2, ...}] renders several matrices side by side as one ASCII string."
+msS1::usage = "msS1[{{...}, {...}, ...}] renders rows of side-by-side matrices as one multi-line ASCII string."
+eForm::usage = "eForm[x] numerically formats `x` in engineering notation, using `e`-style exponents."
 
-submons::usage = "Substitute monomials in `vars` with symbols `head` with exponents in the arguments."
-subjs::usage = "Substitute `vars` using the `j`-notation. Backward compatibility version."
-sym2ind::usage = "Convert a symbol to an indexed object."
-ind2sym::usage = "Convert an indexed object to a symbol."
-mseries1::usage = "Series expansion of tensors."
+submons::usage = "submons[vars, head][expr] collects `expr` in `vars` and replaces each monomial by `head` applied to its exponent vector. submons[var, head] uses a single variable."
+subjs::usage = "subjs[vars][expr] is `submons[vars, $j][expr]`."
+sym2ind::usage = "sym2ind[sym] converts a symbol with alternating letter and digit runs into indexed form, for example `x12y3` to `x[12, y, 3]`."
+ind2sym::usage = "ind2sym[expr] removes brackets, commas, and spaces from an indexed expression and converts the result back to a symbol."
+mseries1::usage = "mseries1[var, max][expr] expands `expr` as a series in `var` about `0`, rewrites the monomials in `$j` notation, and returns `{jTerms, coeffArray}`."
 
 clearDownValues::usage = "..."
 
@@ -54,13 +54,19 @@ EnsureDirectory::usage = "..."
 EnsureNoDirectory::usage = "..."
 EnsureCleanDirectory::usage = "..."
 EnsureNoFile::usage = "..."
+FormatAmount::usage = "..."
+FormatBytes::usage = "..."
+FormatSeconds::usage = "..."
+StringToNumber::usage = "..."
+FormatFixed::usage = "..."
+FormatScientific::usage = "..."
 
 colorANSICode::usage = "..."
 resetANSICode::usage = "..."
 abbr::usage = "..."
 Restore::usage = "..."
 
-addValidation::usage = "..."
+addValidation::usage = "addValidation[symbol] installs a catch-all definition on `symbol` that emits `symbol::badargs` and throws `$Failed` for unsupported argument patterns."
 
 Begin["`Private`"]
 
@@ -416,13 +422,52 @@ addValidation[symbol_Symbol] := CompoundExpression[
 	]
 ];
 
+SetAttributes[
+    {
+        save,
+        dvals,
+        Hide,
+        Unhide,
+        zipWith,
+        zipList,
+        Lengths,
+        Firsts,
+        Lasts,
+        Multiply,
+        Add,
+        Map2,
+        Map3,
+        Map4,
+        Apply1,
+        Apply2,
+        PlusToList,
+        PowerToList,
+        TimesToList,
+        deleteZeroRows,
+        rowReduce,
+        getNullSpace,
+        slicer,
+        mS,
+        msS,
+        msS1,
+        eForm,
+        submons,
+        subjs,
+        sym2ind,
+        ind2sym,
+        mseries1,
+        addValidation
+    },
+    ReadProtected
+];
+
 (* ::Section:: *)
 (* From Thomas Hahn *)
 
 $AbbrPrefix = "c";
 abbr[expr_] := abbr[expr] = Unique[$AbbrPrefix];
 Structure[expr_, x_] := Collect[expr, x, abbr];
-AbbrList[] := Cases[DownValues[abbr], _[_[_[f_]], s_Symbol] -> s -> f];
+AbbrList[] := Cases[DownValues[abbr], _[_[_[f_]], s_Symbol] :> s -> f];
 Restore[expr_] := expr /. AbbrList[]
 clearDownValues[head_] := Set[
     DownValues[head],
@@ -434,6 +479,68 @@ clearDownValues[head_] := Set[
  * GPL-3, right? ;P
  * https://github.com/magv/alibrary
  *)
+
+(* Format a real number in the scientific notation, e.g. 1.23e-4,
+ * with a fixed total width (if it can be achieved).
+ *)
+FormatScientific[x:(_Integer|_Real), width_Integer] :=
+Module[{sign, man, exp, zeros}, 
+  {man, exp} = MantissaExponent[x//N, 10];
+  sign = If[man >= 0, "", "-"];
+  {man, exp} = If[man === 0.0, {0.0, 0}, {Abs[man]*10, exp - 1}];
+  exp = "e" <> ToString[exp];
+  man = ToString[NumberForm[man, Max[1, width - StringLength[sign] - StringLength[exp] - 1]]];
+  zeros = width - StringLength[sign] - StringLength[man] - StringLength[exp];
+  If[zeros > 0, sign <> man <> StringRepeat["0", zeros] <> exp, sign <> man <> exp]
+]
+FormatScientific[width_Integer] := FormatScientific[#, width]&
+FormatScientific[Complex[re_, im_], width_Integer] :=
+  FormatScientific[re, width] <> " " <> FormatScientific[im, width] <> "j"
+
+(* Format a real number with fixed number of digits after the
+ * decimal point.
+ *)
+FormatFixed[x:(_Integer|_Real), digits_Integer] :=
+  IntegerDigits[x*10^digits//Round] //
+  If[1 + digits - Length[#] > 0, Join[Table[0, 1 + digits - Length[#]], #], #]& //
+  MkString[If[x < 0, "-", ""], #[[;;-digits-1]], ".", #[[-digits;;]]]&
+FormatFixed[x:(_Integer|_Real), 0] :=
+  IntegerDigits[x//Round] //
+  If[1 - Length[#] > 0, Join[Table[0, 1 - Length[#]], #], #]& //
+  MkString[If[x < 0, "-", ""], #]&
+FormatFixed[digits_Integer] := FormatFixed[#, digits]&
+
+FormatFixed[Complex[re_, im_], digits_Integer] :=
+  FormatFixed[re, width] <> " " <> FormatFixed[im, width] <> "j"
+
+(* Convert a string in scientific notation (e.g. `1.23e4`) to a
+ * number. *)
+StringToNumber[s_String] := Internal`StringToDouble[s]
+
+(* Format a quantity in a human-readable format using the given
+ * units. The units are specified as a list of string names and
+ * numeric values.
+ *)
+FormatAmount[units_List] := FormatAmount[#, units]&
+FormatAmount[amount_, units_List] := Module[{i, a},
+  For[i = 1, i < Length[units] - 1 && amount > units[[i+1,2]]*0.95, i++, True];
+  a = amount / units[[i, 2]] // N;
+  MkString[NumberForm[a, {Infinity, 3}], units[[i,1]]]
+]
+
+(* Format bytes in human-readable format.
+ *)
+FormatBytes[amount_] := FormatAmount[amount, {
+  {"B", 1}, {"kB", 2^10}, {"MB", 2^20}, {"GB", 2^30}, {"TB", 2^40},
+  {"PB", 2^50}, {"EB", 2^60}, {"ZB", 2^70}, {"YB", 2^80}
+}]
+
+(* Format seconds in human-readable format.
+ *)
+FormatSeconds[amount_] := FormatAmount[amount, {
+  {"s", 1}, {"m", 60}, {"h", 3600}, {"d", 24*3600}, {"w", 7*24*3600},
+  {"y", 365*24*3600}
+}]
 
 SetAttributes[TM, HoldFirst];
 TM[ex_] := AbsoluteTiming[ex] // (Print[HoldForm[ex], ": ", #[[1]], " sec"]; #[[2]])&;
