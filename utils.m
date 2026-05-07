@@ -236,7 +236,7 @@ msS1 = RightComposition[
 submons[vars_List, head_:$j] := RightComposition[
     Collect[#, vars, $coeff]&,
     Expand,
-    ReplaceAll[$coeff[h_] mon_. :> Times[h, mon // Exponent[#, vars]& // Apply[head]]],
+    ReplaceAll[Times[$coeff[h_], mon_.] :> Times[h, mon // Exponent[#, vars]& // Apply[head]]],
     Identity
 ];
 submons[var_, head_:$j] := submons[{var}, head];
@@ -313,10 +313,13 @@ mseries2[var_, max_] := RightComposition[
     (* {#, # // filter[_$j] // SortBy[#, Last /* Multiply[-1]]&}&, *)
     {
         #,
-        # // filter[_$j]
-        // Part[#, All, 1]&
-        // extendRange[max]
-        // Map[j]
+        # // RightComposition[
+            filter[_$j],
+            Part[#, All, 1]&,
+            extendRange[max],
+            Map[j],
+            Identity
+        ]
     }&,
     {
         #[[2]],
@@ -402,7 +405,7 @@ getDens1[x_List] := RightComposition[
     Map[RightComposition[
         PlusToList,
         (*TODO: use some built-in mma function?*)
-        # / (#[[1]] // Replace[(n_ | n_. _) /; NumericQ[n] :> n])&,
+        # / (#[[1]] // Replace[Times[n_ | n_., _] /; NumericQ[n] :> n])&,
         Apply[Plus],
         Identity
     ]],
@@ -416,8 +419,8 @@ getDens1[x_List] := RightComposition[
 SetAttributes[addValidation, HoldAll];
 addValidation[symbol_Symbol] := CompoundExpression[
 	symbol::badargs = "`1` wrong arguments `2`",
-	symbol[xs___] := Module[{},
-		Message[symbol::badargs, SymbolName[symbol], {xs}];
+	symbol[xs___] := CompoundExpression[
+		Message[symbol::badargs, SymbolName[symbol], {xs}],
 		Throw[$Failed]
 	]
 ];
@@ -635,15 +638,17 @@ MkTempDirectory[prefix_, suffix_] := Module[{dirname},
   dirname
 ]
 
-(* Make sure a directory exists. Create it if it doesn’t. *)
-EnsureDirectory[dirs__] := Module[{dir},
-  Do[Quiet[CreateDirectory[dir], {CreateDirectory::filex, CreateDirectory::eexist}];, {dir, {dirs}}];
-]
+(* Make sure a directory exists. Create it if it doesn't. *)
+EnsureDirectory[dirs__] := Do[
+    Quiet[CreateDirectory[dir], {CreateDirectory::filex, CreateDirectory::eexist}];,
+    {dir, {dirs}}
+];
 
-(* Make sure a directory doesn’t exist. Remove it if it does. *)
-EnsureNoDirectory[dirs__] := Module[{dir},
-  Do[Quiet[DeleteDirectory[dir, DeleteContents->True], {DeleteDirectory::nodir}];, {dir, {dirs}}];
-]
+(* Make sure a directory doesn't exist. Remove it if it does. *)
+EnsureNoDirectory[dirs__] := Do[
+    Quiet[DeleteDirectory[dir, DeleteContents->True], {DeleteDirectory::nodir}];,
+    {dir, {dirs}}
+];
 
 (* Make sure a directory exists and has no files inside. *)
 EnsureCleanDirectory[dirs__] := (
@@ -651,10 +656,11 @@ EnsureCleanDirectory[dirs__] := (
   EnsureDirectory[dirs];
 );
 
-(* Make sure a file doesn’t exist. Remove it if it does. *)
-EnsureNoFile[files__] := Module[{file},
-  Do[Quiet[DeleteFile[file], {DeleteFile::fdnfnd}];, {file, {files}}];
-]
+(* Make sure a file doesn't exist. Remove it if it does. *)
+EnsureNoFile[files__] := Do[
+    Quiet[DeleteFile[file], {DeleteFile::fdnfnd}];,
+    {file, {files}}
+];
 
 (* Read a Maple file created by 'save(var, "filename")'. Strip
  * the var name, only return the content.
